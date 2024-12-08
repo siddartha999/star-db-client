@@ -8,10 +8,15 @@ import (
 	"time"
 )
 
-func handleConnection(conn *net.Conn, index int, wg *sync.WaitGroup) {
+func handleConnection(conn *net.Conn, index int, wg *sync.WaitGroup, serveProtocol bool) {
 	defer wg.Done()
 	// Send a request
-	request := []byte("This is a request from the star-db client\n")
+	var request []byte
+	if serveProtocol {
+		request = []byte("Adhering to Protocol\r\n")
+	} else {
+		request = []byte("Protocol ignored\n")
+	}
 	requestBytes, err := (*conn).Write(request)
 	if err != nil {
 		fmt.Println("Error sending a request to the star-db server: ", request)
@@ -40,7 +45,11 @@ func main() {
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
-		go handleConnection(&conn, i, &wg)
+		serveProtocol := true
+		if i%2 == 0 {
+			serveProtocol = false
+		}
+		go handleConnection(&conn, i, &wg, serveProtocol)
 		time.Sleep(1 * time.Second)
 	}
 	wg.Wait()
